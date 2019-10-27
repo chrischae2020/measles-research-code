@@ -1,0 +1,1131 @@
+---
+title: "MCV1 Worldwide & The African Region"
+output: html_notebook
+---
+
+```{r}
+#detach("package:plyr", unload=TRUE) 
+library(dplyr) 
+library(rworldmap)
+library(ggplot2)
+library(tidyverse)
+library(scales)
+library(rpivotTable)
+library(forecast)
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/Users/flare/Google Drive/Research/Analysis")
+```
+
+```{r}
+getwd()
+```
+
+#Data importing
+```{r}
+df <- read.csv(file="data/finaldata.csv", header=TRUE, sep="," )
+head(df)
+```
+
+```{r}
+# Correct the first column name as Cname
+colnames(df)[1] <- "Cname"
+head(df)
+```
+```{r}
+colnames(df)
+```
+
+```{r}
+#Exchange and Vacinne are same so drop Exchange from further analysis
+#df <- select(df, Cname, ISO_code, Region, Vaccine, Year, value)
+#head(df)
+```
+
+
+```{r}
+# inspect data
+str(df)
+head(df)
+tail(df)
+```
+
+```{r}
+df %>%
+  group_by(Region) %>%
+  summarize(n())
+```
+
+
+```{r}
+df %>%
+  group_by(Region) %>%
+  summarize(coverage_rate = mean(value, na.rm = TRUE))
+```
+
+
+```{r}
+df %>%
+  filter(Vaccine == "MCV1") %>% 
+  filter(Year == "2017") %>% 
+  group_by(Region) %>%
+  summarize(coverage_rate = mean(value, na.rm = TRUE)) %>%
+  arrange(Region, coverage_rate) 
+```
+
+```{r}
+#pivot analysis
+#rpivotTable(df)
+```
+
+
+```{r}
+# convert missing values to zero
+#df[is.na(df)] <- 0
+```
+
+# Select MCV1 only
+
+```{r}
+# since my analysis focuses on mealses and its vaccine (MCV1), select rows with this condition
+df <- subset(df, Vaccine == "MCV1")
+head(df)
+```
+
+# RQ1.	What is the worldwide trend of immunization?
+
+```{r}
+vaccine <- df %>%
+  group_by(Vaccine, Year) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+vaccine
+```
+
+```{r}
+ggplot(vaccine, (aes(x = Year, y = CoverageRate, group = Vaccine, colour = Vaccine))) + 
+  geom_hline(yintercept=90, linetype="dashed", color = "black", size = 2) +
+  geom_line() +
+  #geom_dl(aes(label = Vaccine), method = list(dl.trans(x = x + 0.1), "last.points", cex = 0.8)) +
+  #geom_dl(aes(label = Vaccine), method = list(dl.trans(x = x - 0.1), "first.points", cex = 0.8)) +
+  scale_y_continuous(limits = c(0, 100)) +
+  theme(axis.text.x = element_text(angle = 45),legend.position="bottom") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  ggtitle("Trend analysis per Vaccine") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  guides(fill=FALSE) 
+```
+
+
+```{r}
+# the focus is on world regions so let's find out the six world regions
+levels(df$Region)
+```
+- African Region (AFR)
+- Region of the Americas (AMR)
+- South-East Asia Region (SEAR)
+- European Region (EUR)
+- Eastern Mediterranean Region (EMR)
+- Western Pacific Region (WPR)
+
+```{r}
+head(df)
+```
+
+```{r}
+region <- df %>%
+  group_by(Region, Year) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+region
+```
+
+
+```{r}
+df %>%
+  filter(Vaccine == "MCV1") %>% 
+  filter(Year == "1990") %>% 
+  group_by(Region) %>%
+  summarize(coverage_rate = mean(value, na.rm = TRUE)) %>%
+  arrange(Region, coverage_rate)
+  #filter(Region =="EMR") %>%
+  #filter(coverage_rate <= 76)
+```
+
+```{r}
+df %>%
+  filter(Vaccine == "MCV1") %>% 
+  filter(Year == "1983") %>% 
+  group_by(Region) %>%
+  summarize(coverage_rate = mean(value, na.rm = TRUE)) %>%
+  arrange(coverage_rate, Region)
+```
+
+# RQ2.	What is the trend of MCV1 immunization in terms of regions (African, Americas, South-East Asia, European, Eastern Mediterranean, and Western Pacific)?
+
+```{r, fig.height = 8, fig.width = 12}
+
+region <- df %>%
+  group_by(Region, Year) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+ggplot(region, (aes(x = Year, y = CoverageRate, group = Region, colour = Region))) + 
+  geom_hline(yintercept=90, linetype="dashed", color = "black", size = 2) +
+  geom_line(size=2) +
+  #geom_dl(aes(label = Region), method = list(dl.trans(x = x + 0.1), "last.points", cex = 0.8)) +
+  #geom_dl(aes(label = Region), method = list(dl.trans(x = x - 0.1), "first.points", cex = 0.8)) +
+  scale_y_continuous(limits = c(0, 100)) +
+  theme(axis.text.x = element_text(angle = 45),legend.position="bottom") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  #geom_hline(yintercept=90, linetype="dashed", color = "red")
+  #ggtitle("Trend analysis per Vaccine") +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=10), 
+        legend.text=element_text(size=12)) +
+  guides(fill=FALSE) 
+```
+
+```{r, fig.height = 8, fig.width = 12}
+region <- df %>%
+  group_by(Region, Year) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+ggplot(region, (aes(x = Year, y = CoverageRate, group = Region, colour = Region))) + 
+  #geom_hline(yintercept=90, linetype="dashed", color = "black", size = 2) +
+  geom_line(size=2) +
+  #geom_dl(aes(label = Region), method = list(dl.trans(x = x + 0.1), "last.points", cex = 0.8)) +
+  #geom_dl(aes(label = Region), method = list(dl.trans(x = x - 0.1), "first.points", cex = 0.8)) +
+  scale_y_continuous(limits = c(0, 100)) +
+  theme(axis.text.x = element_text(angle = 45),legend.position="bottom") +
+  theme_bw() +
+  ylab("Coverage Rate") +
+  xlab("Year") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=14), 
+        legend.text=element_text(size=14)) +
+  theme(axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  guides(fill=FALSE) 
+```
+
+```{r, fig.height = 8, fig.width = 12}
+fig1 <- ggplot(region, (aes(x = Year, y = CoverageRate, group = Region, colour = Region))) + 
+  #geom_hline(yintercept=90, linetype="dashed", color = "black", size = 2) +
+  geom_line(size=2) +
+  #geom_dl(aes(label = Region), method = list(dl.trans(x = x + 0.1), "last.points", cex = 0.8)) +
+  #geom_dl(aes(label = Region), method = list(dl.trans(x = x - 0.1), "first.points", cex = 0.8)) +
+  scale_y_continuous(limits = c(0, 100)) +
+  theme(axis.text.x = element_text(angle = 45),legend.position="bottom") +
+  theme_bw() +
+  ylab("Coverage Rate") +
+  xlab("Year") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=14), 
+        legend.text=element_text(size=14)) +
+  theme(axis.text=element_text(size=14,face="bold"),
+        axis.title=element_text(size=14,face="bold")) +
+  guides(fill=FALSE) 
+
+jpeg(filename="Figures/Figure1.jpg",
+     width = 640, height = 420)
+plot(fig1)
+dev.off()
+```
+
+
+# What is the trend of Venezuela?
+
+```{r}
+ven = subset(df, Cname == "Venezuela (Bolivarian Republic of)")
+head(ven)
+```
+
+
+```{r, fig.height = 8, fig.width = 12}
+#region <- df %>%
+#  group_by(Region, Year) %>%
+#  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+ggplot(ven, (aes(x = Year, y = value))) + 
+  #geom_hline(yintercept=90, linetype="dashed", color = "black", size = 2) +
+  geom_line(size=2) +
+  scale_y_continuous(limits = c(0, 100)) +
+  theme(axis.text.x = element_text(angle = 45),legend.position="bottom") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=10), 
+        legend.text=element_text(size=12)) +
+  guides(fill=FALSE) 
+```
+
+
+# RQ2
+# Worldwide Map of MCV1 Coverage Rate
+
+```{r, fig.height = 8, fig.width = 12}
+# Function to visualize coverage rate in a global map
+
+create_map <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    group_by(ISO_code) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  sPDF <- joinCountryData2Map( country
+                               ,joinCode = "ISO3"
+                               ,nameJoinColumn = "ISO_code")
+  
+  mapCountryData(sPDF, 
+                 nameColumnToPlot='CoverageRate',
+                 mapTitle="")
+  
+  par(mai=c(0,0,0.2,0),xaxs="i",yaxs="i")
+ 
+}
+
+create_map('MCV1')
+```
+
+```{r}
+# map for Year 2017 only
+#####################################################
+create_map <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    filter(Year == "2017") %>% 
+    group_by(ISO_code) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  sPDF <- joinCountryData2Map( country
+                               ,joinCode = "ISO3"
+                               ,nameJoinColumn = "ISO_code")
+  
+  sPDF <- subset(sPDF, continent != "Antarctica")
+  
+  mapParams <- mapCountryData(sPDF, 
+                 nameColumnToPlot='CoverageRate',
+                 mapTitle='',
+                 addLegend = 'FALSE'
+                 #mapTitle=vaccine_type
+                 )
+  
+  #print(mapCountryData(sPDF, 
+  #                     nameColumnToPlot='CoverageRate',
+  #                     mapTitle=vaccine_type))
+  
+  par(mai=c(0,0,0.2,0),xaxs="i",yaxs="i")
+  
+  do.call( addMapLegend, c( mapParams
+                          #, legendLabels="all"
+                          , legendWidth=0.5
+                          , labelFontSize=1.5
+                          ))
+
+}
+
+create_map('MCV1')
+
+```
+
+```{r}
+#jpeg(filename = "Figures/Figure2.jpeg",
+#     width = 540, pointsize = 12)
+
+create_map <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    filter(Year == "2017") %>% 
+    group_by(ISO_code) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  #country <- subset(country, continent != "Antarctica")
+  
+  sPDF <- joinCountryData2Map( country
+                               ,joinCode = "ISO3"
+                               ,nameJoinColumn = "ISO_code")
+  sPDF <- subset(sPDF, continent != "Antarctica")
+  
+  
+  mapCountryData(sPDF, 
+                 nameColumnToPlot='CoverageRate',
+                 mapTitle=""
+                 )
+  
+  par(mai=c(0,0,0.2,0),xaxs="i",yaxs="i")
+
+}
+
+create_map('MCV1')
+
+```
+
+
+```{r}
+
+
+create_map <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    filter(Year == "2017") %>% 
+    group_by(ISO_code) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  sPDF <- joinCountryData2Map( country
+                               ,joinCode = "ISO3"
+                               ,nameJoinColumn = "ISO_code")
+  
+  mapCountryData(sPDF, 
+                 nameColumnToPlot='CoverageRate',
+                 mapTitle=vaccine_type)
+  
+  #print(mapCountryData(sPDF, 
+  #                     nameColumnToPlot='CoverageRate',
+  #                     mapTitle=vaccine_type))
+  
+  par(mai=c(0,0,0.2,0),xaxs="i",yaxs="i")
+  
+}
+
+fig2 <- create_map('MCV1')
+
+jpeg(filename="Figures/Figure2.jpeg")
+plot(fig2)
+dev.off()
+
+```
+
+
+
+# Outlier Analysis
+
+#RQ 3.	What are the countries with very low MCV1 coverage rates? What countries are considered "outliers", those countries with low coverage rates?
+
+```{r}
+#detach("package:plyr", unload=TRUE) 
+
+df %>%
+  group_by(Region) %>%
+  summarize(n())
+```
+
+```{r}
+df %>%
+  group_by(Region) %>%
+  summarize(n_distinct(Cname))
+```
+
+```{r}
+df %>%
+  group_by(Region) %>%
+  summarize(coverage_rate = mean(value, na.rm = TRUE))
+```
+
+**Worldwide**
+```{r, fig.height = 6, fig.width = 12}
+get_outliers <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    group_by(Year, Cname) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  out <- ggplot(country, aes(x = factor(Year), y = CoverageRate)) +
+    geom_boxplot() +
+    #ggtitle(vaccine_type) +
+    geom_point(aes(color=Year), alpha=0.2, position='jitter', color='red') + 
+    geom_boxplot(outlier.size=5, alpha=0.1) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+    #theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(legend.position="none", text = element_text(size=14))+
+    #theme(axis.title.x=element_blank(), axis.title.y=element_blank()) +
+    ylab("Coverage Rate") +
+    xlab("Year") +
+    theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=14), 
+        legend.text=element_text(size=14)) +
+    theme(axis.text=element_text(size=13,face="bold"),
+        axis.title=element_text(size=14,face="bold"))
+  
+  print(out)
+}
+
+get_outliers('MCV1')
+```
+
+```{r, fig.height = 6, fig.width = 12}
+
+fig3 <- get_outliers('MCV1')
+
+jpeg(filename="Figures/Figure3.jpg",
+     width = 640, height = 420)
+plot(fig3)
+dev.off()
+```
+
+
+The chart above shows something very significant happening that while there is an increase in MCV1 immunization worldwide, there are also many countries far behind that worldwide trend.
+
+```{r}
+vaccine_name <- filter(df, Vaccine == "MCV1")
+  
+country <- vaccine_name %>%
+  group_by(Year, Cname) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+country
+```
+
+```{r}
+vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+country <- vaccine_name %>%
+  group_by(Year, Cname) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+country[complete.cases(country), ]
+```
+
+
+```{r}
+
+vaccine_type <- 'MCV1'
+vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+country <- vaccine_name %>%
+  group_by(Year, Cname) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+is_outlier <- function(x) {
+return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+
+country <- country[complete.cases(country), ]
+
+dat <- country %>% 
+  tibble::rownames_to_column(var="outlier") %>% 
+  group_by(Year) %>%
+  mutate(is_outlier=ifelse(is_outlier(CoverageRate), CoverageRate, as.numeric(NA)))
+
+dat$outlier[which(is.na(dat$is_outlier))] <- as.numeric(NA)
+
+ggplot(dat, aes(y=CoverageRate, x=factor(Year))) + geom_boxplot() +
+  geom_text(aes(label=outlier),na.rm=TRUE,nudge_y=0.05)
+```
+
+
+```{r}
+
+get_outliers <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    group_by(Year, Cname) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+  }
+  
+  country <- country[complete.cases(country), ]
+  
+  dat <- country %>% 
+    tibble::rownames_to_column(var="outlier") %>% 
+    group_by(Year) %>%
+    mutate(is_outlier=ifelse(is_outlier(CoverageRate), CoverageRate, as.numeric(NA)))
+  
+  dat$outlier[which(is.na(dat$is_outlier))] <- as.numeric(NA)
+  
+  ggplot(dat, aes(y=CoverageRate, x=factor(Year))) + geom_boxplot() +
+    geom_text(aes(label=outlier),na.rm=TRUE,nudge_y=0.05)
+}
+
+get_outliers('MCV1')
+```
+
+
+```{r, fig.height = 6, fig.width = 12}
+get_outliers <- function(vaccine_type) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type)
+  
+  country <- vaccine_name %>%
+    group_by(Year, Cname) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+  }
+  
+  country <- country[complete.cases(country), ]
+  
+  dat <- country %>% 
+    tibble::rownames_to_column(var="outlier") %>% 
+    group_by(Year) %>%
+    mutate(is_outlier=ifelse(is_outlier(CoverageRate), CoverageRate, as.numeric(NA)))
+  
+  dat$outlier[which(is.na(dat$is_outlier))] <- as.numeric(NA)
+    
+  ggplot(dat, aes(y=CoverageRate, x=factor(Year))) + geom_boxplot() +
+    geom_text(aes(label=outlier),na.rm=TRUE,nudge_y=0.05)
+
+}
+
+get_outliers('MCV1')
+```
+
+
+
+```{r, fig.height = 6, fig.width = 12}
+
+fig5 <- ggplot(country, aes(x = factor(Year), y = CoverageRate)) +
+  geom_boxplot() +
+  #ggtitle(vaccine_type) +
+  geom_point(aes(color=Year), alpha=0.2, position='jitter', color='red') + 
+  geom_boxplot(outlier.size=5, alpha=0.1) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position="none", text = element_text(size=14))+
+  theme(axis.title.x=element_blank(), axis.title.y=element_blank()) +
+    theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=14), 
+        legend.text=element_text(size=14)) +
+    theme(axis.text=element_text(size=13,face="bold"),
+        axis.title=element_text(size=14,face="bold"))
+
+jpeg(filename="Figure5.jpg",
+     width = 640, height = 420)
+plot(fig5)
+dev.off()
+```
+
+
+
+
+```{r}
+country
+```
+
+
+## Comparing Two Regions: Europe (EUR) & Africa (AFR)
+
+**Europe Region**
+
+```{r, fig.height = 6, fig.width = 12}
+get_outliers <- function(vaccine_type, region_name) {
+  
+  vaccine_name <- filter(df, Vaccine == vaccine_type, Region == region_name)
+  
+  country <- vaccine_name %>%
+    group_by(Year, ISO_code) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  out <- ggplot(country, aes(x = factor(Year), y = CoverageRate)) +
+    geom_boxplot() +
+    #ggtitle(vaccine_type) +
+    geom_point(aes(color=Year), alpha=0.2, position='jitter', color='red') + 
+    geom_boxplot(outlier.size=5, alpha=0.1) +
+    theme_bw() +
+    ylab("Coverage Rate") +
+    xlab("Year") +
+    theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(legend.position="none", text = element_text(size=14))+
+    #theme(axis.title.x=element_blank(), axis.title.y=element_blank()) +
+    theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title=element_text(size=14), 
+        legend.text=element_text(size=14)) +
+    theme(axis.text=element_text(size=13,face="bold"),
+        axis.title=element_text(size=14,face="bold"))
+  print(out)
+}
+
+get_outliers('MCV1', 'EUR')
+```
+The chart above shows a strong performance of European countries in MCV1 immunization
+- Variation among the counrties is very minimal, indicating that most countries are doing very well.
+
+
+**African Region**
+
+```{r, fig.height = 6, fig.width = 12}
+
+get_outliers('MCV1', 'AFR')
+
+
+```
+
+
+```{r, fig.height = 6, fig.width = 12}
+
+fig5 <- get_outliers('MCV1', 'AFR')
+
+jpeg(filename="Figure5.jpg",
+     width = 640, height = 420)
+plot(fig5)
+dev.off()
+
+```
+
+Compared to EUR, the african countries are still slow in MCV1 immunization. Even, the growth seems stagnant since 1989.
+During the 1990s, the region's MCV1 immunization was dropped quite significantly (this seems due to political and religious conflicts in some countries in the region)
+
+
+```{r}
+#rpivotTable(df)
+```
+
+### Let's find out what countries are the outliers
+
+```{r, fig.height = 6, fig.width = 12}
+df1 <- df
+df1 <- na.omit(df1)
+df1$Year <- as.factor(df1$Year)
+
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+
+dat <- df1 %>%  
+        tibble::rownames_to_column(var="outlier") %>%
+        group_by(Year) %>% 
+        mutate(is_outlier=ifelse(is_outlier(value), value, as.numeric(NA))) 
+  
+dat$outlier[which(is.na(dat$is_outlier))] <- as.numeric(NA)
+
+ggplot(dat, aes(y=value, x=factor(Year))) + geom_boxplot() + geom_text(aes(label=outlier),na.rm=TRUE,nudge_y=0.05)
+
+```
+
+```{r}
+# print those outliers
+df2 <- dat
+df2 <- na.omit(df2)
+df3 <- df2[!is.na(df2$outlier),]
+
+outlier_country <- df3 %>%
+  group_by(Year, Region, Cname) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+nrow(outlier_country)
+outlier_country
+write.csv(outlier_country, "outlier.csv")
+```
+
+
+```{r}
+outlier_country %>%
+  group_by(Year) %>%
+  summarize(n())
+```
+
+```{r}
+#outlier_country_since1982 <- outlier_country %>%
+#  filter(Year != 1980 & Year != 1981)
+
+#outlier_country_since1982
+```
+
+```{r}
+#outlier_country_since1982 %>%
+#  group_by(Year) %>%
+#  summarize(n())
+```
+
+```{r}
+#outlier_list <- outlier_country_since1982 %>%
+outlier_list <- outlier_country %>%  
+  group_by(Year, Region) %>%
+  summarize(count = n())
+
+outlier_list
+```
+
+```{r}
+#outlier_list <- outlier_country %>%  
+#  group_by(Year, Region, Cname) %>%
+#  arrange(Year, Region, Cname)
+  #summarize(count = n())
+
+#outlier_list
+```
+
+
+```{r, fig.height = 6, fig.width = 12}
+ggplot(outlier_list, aes(Year, count)) +   
+  geom_bar(aes(fill = Region), position = "dodge", stat="identity") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  #theme(legend.position="none", text = element_text(size=14))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  #theme(axis.title.x=element_blank(), axis.title.y=element_blank()) +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      legend.title=element_text(size=14), 
+      legend.text=element_text(size=14)) +
+  theme(axis.text=element_text(size=13,face="bold"),
+      axis.title=element_text(size=14,face="bold")) +
+  ylab("Count")
+
+```
+```{r}
+
+fig4 <- ggplot(outlier_list, aes(Year, count)) +   
+  geom_bar(aes(fill = Region), position = "dodge", stat="identity") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  #theme(legend.position="none", text = element_text(size=14))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  #theme(axis.title.x=element_blank(), axis.title.y=element_blank()) +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      legend.title=element_text(size=14), 
+      legend.text=element_text(size=14)) +
+  theme(axis.text=element_text(size=13,face="bold"),
+      axis.title=element_text(size=14,face="bold")) +
+  ylab("Count")
+
+jpeg(filename="Figure4.jpg",
+     width = 640, height = 420)
+plot(fig4)
+dev.off()
+
+```
+
+
+
+
+```{r}
+# print those outliers
+df2 <- dat
+df2 <- na.omit(df2)
+df3 <- df2[!is.na(df2$outlier),]
+
+outlier_country <- df3 %>%
+  group_by(Year, Region, Cname) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+
+nrow(outlier_country)
+outlier_country
+write.csv(outlier_country, "african_outlier.csv")
+```
+
+
+
+### Conclusion
+
+**More outliers in AFR than any other regions over the past three decades. This trend has not slow down**
+
+
+# Hypothesis Testing
+
+- AFR is lower than other regions in terms of MCV1 immunization (due to lack of political and economic infrastructure)
+
+Before hypothesis testing, let's visualize the data
+http://www.sthda.com/english/wiki/one-way-anova-test-in-r
+
+
+```{r, fig.height = 6, fig.width = 12}
+# barplot
+ggboxplot(df, x = "Region", y = "value", 
+          color = "Region", ylab = "Coverage", xlab = "Region")
+```
+
+
+```{r, fig.height = 6, fig.width = 12}
+# Mean plots: Plot weight by group; Add error bars: mean_se
+# (other values include: mean_sd, mean_ci, median_iqr, ....)
+ggline(df, x = "Region", y = "value", 
+       add = c("mean_se", "jitter"), 
+       ylab = "value", xlab = "Region")
+```
+
+### Analysis of Variance (ANOVA)
+
+```{r}
+anova <- aov(value ~ Region, data = df)
+
+summary(anova)
+```
+
+```{r}
+# pairwise analysis
+TukeyHSD(anova)
+```
+```{r}
+summary(glht(anova, linfct = mcp(Region = "Tukey")))
+```
+
+```{r}
+pairwise.t.test(df$value, df$Region,
+                p.adjust.method = "BH")
+```
+
+### ANOVA Assumptions
+
+ANOVA has assumptions about the data so let's check them ()
+```{r, fig.height = 6, fig.width = 12}
+# Homogeneity of Variance Plot
+library(HH)
+hov(value~Region, data=df)
+hovPlot(value~Region,data=df)
+```
+
+Normality test
+```{r, fig.height = 6, fig.width = 12}
+plot(anova, 2)
+```
+
+```{r}
+bartlett.test(value ~ Region, data = df)
+```
+
+```{r}
+fligner.test(value ~ Region, data = df)
+```
+
+The multiple tests above indicate that the homogeneity of variance is violated. Thus, I will deploy a different statistical method. 
+
+### Relaxing the homogeneity of variance assumption.
+
+http://www.sthda.com/english/wiki/one-way-anova-test-in-r
+
+"The classical one-way ANOVA test requires an assumption of equal variances for all groups. In our example, the homogeneity of variance assumption turned out to be fine: the Levene test is not significant.
+
+The classical one-way ANOVA test requires an assumption of equal variances for all groups. In our example, the homogeneity of variance assumption turned out to be fine: the Levene test is not significant."
+
+
+ANOVA test with no assumption of equal variances
+```{r}
+oneway.test(value ~ Region, data = df)
+```
+
+Pairwise t-tests with no assumption of equal variances
+```{r}
+pairwise.t.test(df$value, df$Region,
+                p.adjust.method = "BH", pool.sd = FALSE)
+```
+
+```{r}
+pairwise.t.test(df$value, df$Region,
+                p.adjust.method = "BH", pool.sd = TRUE)
+```
+
+
+Non-parametric alternative to one-way ANOVA test
+```{r}
+kruskal.test(value ~ Region, data = df)
+```
+
+### Conclusion
+
+- My first hypothesis is confirmed that AFR is lower than other regions in terms of MCV1 immunization. This finding can be both expected and suprising. To some, this finding may be expected. However, this finding is also alarming that while there has been much progress in worldwid immunization and world population living in extreme poverty is diminishing for the past three decades, the African region is still lagging behind the rest of the world.
+
+**This finding warrants a more fine-grained analysis of MCV1 and the African region.**
+
+# Predicting Next Five Years: "Autoregression" Time Series Analysis
+
+# Hypothesis #2
+
+Let's first examine the overall trend using autogression:
+
+- include all countries (& regions) and all vaccine types
+
+```{r}
+df <- read.csv(file="data/finaldata.csv", header=TRUE, sep="," )
+# Correct the first column name as Cname
+colnames(df)[1] <- "Cname"
+# convert missing values to zero
+#df[is.na(df)] <- 0
+```
+
+
+```{r}
+overalltrend <- df %>%
+  group_by(Year) %>%
+  dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+overalltrend
+class(overalltrend)
+plot(overalltrend)
+```
+
+```{r}
+overalltrend_df <- subset(overalltrend, select=(CoverageRate))
+overalltrend_ts <- ts(overalltrend_df, start=min(overalltrend$Year), end=max(overalltrend$Year))
+overalltrend_ts
+plot(overalltrend_ts)
+```
+
+```{r}
+tsBest <- auto.arima(x=overalltrend_ts)
+tsBest
+```
+
+```{r}
+theForecast <- forecast(object=tsBest, h=5)
+plot(theForecast)
+```
+
+Finding: It appears it would be very difficult to achive the goal set by the world organizations ...
+
+
+## MCV1: Let's focus on MCV1 only
+
+- Global
+
+```{r}
+# since my analysis focuses on mealses and its vaccine (MCV1), select rows with this condition
+df <- subset(df, Vaccine == "MCV1")
+head(df)
+```
+
+
+```{r, fig.height = 6, fig.width = 12}
+trend_by_vaccine <- function(vaccine_selected) {
+  
+  vaccine <- df %>%
+    filter(Vaccine == vaccine_selected) %>%
+    group_by(Year) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  tryCatch({
+    overalltrend_df <- subset(vaccine, select=(CoverageRate))
+    overalltrend_ts <- ts(overalltrend_df, start=min(vaccine$Year), end=max(vaccine$Year))
+    
+    #plot(overalltrend_ts, main=vaccine_selected)
+    
+    #acf(overalltrend_ts)
+    #pacf(overalltrend_ts)
+    #ndiffs(x=overalltrend_ts)
+    #plot(diff(overalltrend_ts, 1))
+    tsBest <- auto.arima(x=overalltrend_ts)
+    #tsBest
+    #acf(tsBest$residuals)
+    #pacf(tsBest$residuals)
+    #coef(tsBest)
+    #predict(tsBest, n.head = 5, se.fit = TRUE)
+    theForecast <- forecast(object=tsBest, h=5, level=95)
+    #plot(theForecast, main="", xlab = "Year", ylab = "Coverage Rate")
+    plot(theForecast, main="")
+    #plot(theForecast, main=vaccine_selected)
+    abline(h=90)
+  }, error=function(e){})
+}
+```
+
+
+```{r}
+trend_by_vaccine('MCV1')
+```
+
+
+### MCV1 & African Region
+
+```{r, fig.height = 6, fig.width = 12}
+trend_by_vaccine <- function(vaccine_selected) {
+  
+  vaccine <- df %>%
+    filter(Vaccine == vaccine_selected) %>%
+    filter(Region == "AFR") %>%
+    group_by(Year) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  tryCatch({
+    overalltrend_df <- subset(vaccine, select=(CoverageRate))
+    overalltrend_ts <- ts(overalltrend_df, start=min(vaccine$Year), end=max(vaccine$Year))
+    
+    plot(overalltrend_ts, main=vaccine_selected)
+    
+    #acf(overalltrend_ts)
+    #pacf(overalltrend_ts)
+    #ndiffs(x=overalltrend_ts)
+    #plot(diff(overalltrend_ts, 1))
+    tsBest <- auto.arima(x=overalltrend_ts)
+    #tsBest
+    #acf(tsBest$residuals)
+    #pacf(tsBest$residuals)
+    #coef(tsBest)
+    #predict(tsBest, n.head = 5, se.fit = TRUE)
+    theForecast <- forecast(object=tsBest, h=5, level = 95)
+    plot(theForecast, main="", ylim=c(0,100))
+    #plot(theForecast, main=vaccine_selected)
+    abline(h=90)
+  }, error=function(e){})
+}
+```
+
+
+```{r}
+trend_by_vaccine('MCV1')
+```
+
+```{r, fig.height = 6, fig.width = 12}
+trend_by_vaccine_region <- function(vaccine_selected, region_selected) {
+  print(paste(vaccine_selected, region_selected, sep=(" in ")))
+  vaccine_name <- filter(df, Vaccine == vaccine_selected)
+  
+  region_vaccinetype <- vaccine_name %>%
+    filter(Region == region_selected) %>%
+    group_by(Year) %>%
+    dplyr::summarize(CoverageRate = mean(value, na.rm=TRUE))
+  
+  tryCatch({
+    overalltrend_df <- subset(region_vaccinetype, select=(CoverageRate))
+    overalltrend_ts <- ts(overalltrend_df, start=min(region_vaccinetype$Year), 
+                          end=max(region_vaccinetype$Year))
+  
+    plot(overalltrend_ts, main=paste(vaccine_selected, region_selected, sep=" in "),ylim=c(0,100))
+    
+    #acf(overalltrend_ts)
+    #pacf(overalltrend_ts)
+    #ndiffs(x=overalltrend_ts)
+    #plot(diff(overalltrend_ts, 1))
+    tsBest <- auto.arima(x=overalltrend_ts)
+    #tsBest
+    #acf(tsBest$residuals)
+    #pacf(tsBest$residuals)
+    #coef(tsBest)
+    #predict(tsBest, n.head = 5, se.fit = TRUE)
+    theForecast <- forecast(object=tsBest, h=5)
+    #plot(theForecast, main=paste(vaccine_selected, region_selected, sep=" in "),ylim=c(0,100))
+    #abline(h=90)
+    plot(theForecast, main="",ylim=c(0,100))
+    abline(h=90)
+  }, error=function(e){})
+}
+
+```
+
+
+```{r}
+trend_by_vaccine_region('MCV1', 'AFR')
+```
+

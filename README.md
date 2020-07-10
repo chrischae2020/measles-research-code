@@ -1,3 +1,4 @@
 # MeaslesResearch
-Data figures and python/R code for article, "Researching global immunization coverage and its future prospects" based on MCV1 trends years 1970-2017
+
+Abstract: Despite global eradication efforts, the worldwide measles vaccination program has stagnated over the past decade and there is growing concern of a “measles resurgence”. This study reports the results of an analysis of the latest immunization data, a secondary dataset from the World Health Organization (WHO), while addressing three questions: (1) What is the trend of MCV1 immunization in terms of regions (African, Americas, South-East Asia, European, Eastern Mediterranean, and Western Pacific); (2) What are the countries with very low MCV1 coverage rates; and, (3) What are the prospects for the African region for the next 5 years; Is the GVAP's goal of 90% global immunization coverage likely to be met? The results highlight that, while the measles vaccination program has made steady progress since 1980, there is wide variation in the coverage among countries and world regions, and global progress appears to have been hindered by economic and political turmoil.
 
